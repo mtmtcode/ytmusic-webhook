@@ -2,9 +2,13 @@ import { normalizeHost, songText, ApiError } from './core.js';
 
 export const WEBHOOK_TEMPLATE = JSON.stringify({ source: '{{source}}', title: '{{title}}', artist: '{{artist}}' }, null, 2);
 export const LAMETRIC_TEMPLATE = JSON.stringify({ priority: 'info', model: { cycles: 1, frames: [{ icon: 'i1850', text: '{{title}}' }, { icon: 'i1850', text: '{{artist}}' }] } }, null, 2);
+export const LAMETRIC_DIY_TEMPLATE = JSON.stringify({ frames: [{ icon: 'i1850', text: '{{title}}' }, { icon: 'i1850', text: '{{artist}}' }] }, null, 2);
 export const SAMPLE = { title: '接続テスト', artist: 'YouTube Music' };
 const VARIABLES = ['source', 'title', 'artist'];
 export function newTarget(preset = 'webhook') {
+  if (preset === 'lametric-diy') return { id: crypto.randomUUID(), name: 'LaMetric TIME - My Data DIY', preset, enabled: true,
+    url: 'http://<DEVICE_IP>:8080/api/v2/widget/update/com.lametric.diy.devwidget/<WIDGET_ID>',
+    auth: { type: 'basic', username: 'dev', password: '' }, template: LAMETRIC_DIY_TEMPLATE };
   return { id: crypto.randomUUID(), name: preset === 'lametric' ? 'LaMetric TIME' : 'Webhook', preset, enabled: true,
     url: preset === 'lametric' ? 'http://192.168.1.20:8080/api/v2/device/notifications' : 'http://raspberrypi.local:3000/now-playing',
     auth: preset === 'lametric' ? { type: 'basic', username: 'dev', password: '' } : { type: 'none' },
@@ -49,7 +53,7 @@ export function validateTarget(value) {
   if (!value || typeof value.id !== 'string' || !/^[\w-]{1,80}$/.test(value.id)) throw new Error('送信先IDが不正です。');
   const name = String(value.name ?? '').trim();
   if (!name || name.length > 80) throw new Error('送信先名は1〜80文字です。');
-  if (!['webhook', 'lametric'].includes(value.preset)) throw new Error('プリセットが不正です。');
+  if (!['webhook', 'lametric', 'lametric-diy'].includes(value.preset)) throw new Error('プリセットが不正です。');
   const url = parseEndpoint(value.url);
   if (typeof value.enabled !== 'boolean') throw new Error('送信先のON/OFFが不正です。');
   const supplied = value.auth || { type: 'none' };
@@ -68,6 +72,7 @@ export function validateTarget(value) {
     if (url.protocol !== 'http:' || url.port !== '8080' || url.pathname !== '/api/v2/device/notifications' || url.search) throw new Error('LaMetricのURLは http://ホスト:8080/api/v2/device/notifications にしてください。');
     if (auth.type !== 'basic' || auth.username !== 'dev') throw new Error('LaMetricはBasic認証・ユーザー名devを使用します。');
   }
+  if (value.preset === 'lametric-diy' && (auth.type !== 'basic' || auth.username !== 'dev')) throw new Error('LaMetricはBasic認証・ユーザー名devを使用します。');
   renderTemplate(value.template, SAMPLE);
   return { id: value.id, name, preset: value.preset, enabled: value.enabled, url: url.href, auth, template: value.template };
 }
@@ -138,3 +143,4 @@ export async function sendRequest(target, method, { body, fetcher = fetch, timeo
     throw new ApiError(error.name === 'AbortError' ? '通信がタイムアウトしました。' : '接続できません。URL、接続権限、ネットワークを確認してください。', method === 'POST');
   } finally { clearTimeout(timer); }
 }
+

@@ -18,17 +18,19 @@
 <template id="target-card"><section class="target">
 <div class="card-heading"><h2>送信先</h2><button class="remove secondary" type="button">削除</button></div>
 <label>名前<input data-field="name" maxlength="80" autocomplete="off"></label>
-<label>プリセット<select data-field="preset"><option value="webhook">汎用Webhook</option><option value="lametric">LaMetric TIME</option></select></label>
+<label>プリセット<select data-field="preset"><option value="webhook">汎用Webhook</option><option value="lametric">LaMetric TIME</option><option value="lametric-diy">LaMetric TIME - My Data DIY</option></select></label>
 <label class="toggle"><input data-field="enabled" type="checkbox">この送信先を有効にする</label>
 <label>POST先URL<input data-field="url" type="url" spellcheck="false" autocomplete="off"></label>
 <p class="lametric-hint hint">LaMetric： http://ホスト:8080/api/v2/device/notifications</p>
+<p class="lametric-diy-hint hint">My Data DIYでHTTP Pushを選び、表示されるPush URLのIPアドレスとWidget IDをPOST先URLに設定してください。DEVICE_IP・WIDGET_IDのプレースホルダー（山括弧を含む）を置き換え、Device API Keyを入力します。</p>
 <label>認証<select data-field="authType"><option value="none">なし</option><option value="basic">Basic</option><option value="bearer">Bearerトークン</option></select></label>
 <div class="basic-fields"><label>ユーザー名<input data-field="username" autocomplete="off" spellcheck="false"></label><label class="password-label"><span>パスワード</span><input data-field="password" type="password" autocomplete="off" spellcheck="false"></label></div>
 <div class="bearer-fields"><label>Bearerトークン<input data-field="token" type="password" autocomplete="off" spellcheck="false"></label></div>
 <label>JSONテンプレート<textarea data-field="template" rows="10" spellcheck="false"></textarea></label>
-<p class="hint">使用可能： {{title}} / {{artist}} / {{source}}。変数はJSON文字列内に書きます。LaMetricのループ回数は cycles、アイコンは各フレームの icon（例：i1850）を直接変更してください。icon を削除すると非表示になります。</p>
+<p class="hint">使用可能： {{title}} / {{artist}} / {{source}}。変数はJSON文字列内に書きます。LaMetric通知のループ回数は cycles、アイコンは各フレームの icon（例：i1850）を直接変更してください。icon を削除すると非表示になります。</p>
 <details><summary>サンプル曲で送信JSONを確認</summary><pre class="preview"></pre></details>
 <button class="test secondary" type="button">接続テスト</button>
 <p class="test-hint hint"></p><p class="test-result" role="status"></p>
 </section></template>
 <script type="module" src="options.js"></script></body></html>
+
