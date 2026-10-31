@@ -44,7 +44,7 @@ test('worker lifecycle, multi-destination delivery and concurrency', async t => 
     const request = restored.calls.find(call => call.url === diy.url);
     assert.equal(request.method, 'POST');
     assert.equal(atob(request.headers.Authorization.slice(6)), 'dev:my-device-key');
-    assert.deepEqual(JSON.parse(request.body), { frames: [{ icon: 'i54031', text: 'New song' }, { icon: 'i54031', text: 'Artist' }] });
+    assert.deepEqual(JSON.parse(request.body), { frames: [{ icon: 'i54031', text: 'New song' }, { icon: 'i45197', text: 'Artist' }] });
     assert.equal(restored.calls.length, 3);
   });
   await t.test('deduplicate reports and tabs; LaMetric only POSTs', async () => {
@@ -80,7 +80,7 @@ test('worker lifecycle, multi-destination delivery and concurrency', async t => 
     await w.song('B'); await w.song('C'); release();
     await until(() => w.data.deliveries.clock?.lastKey === job('C').key); await settle();
     assert.deepEqual(w.calls.map(c => c.method), ['POST', 'POST']);
-    assert.deepEqual(JSON.parse(w.calls.at(-1).body).model.frames, [{ icon: 'i54031', text: 'C' }, { icon: 'i54031', text: 'Artist' }]);
+    assert.deepEqual(JSON.parse(w.calls.at(-1).body).model.frames, [{ icon: 'i54031', text: 'C' }, { icon: 'i45197', text: 'Artist' }]);
   });
   await t.test('OFF while POST is running prevents the following POST', async () => {
     let release;

@@ -1,8 +1,8 @@
 import { normalizeHost, songText, ApiError } from './core.js';
 
 export const WEBHOOK_TEMPLATE = JSON.stringify({ source: '{{source}}', title: '{{title}}', artist: '{{artist}}' }, null, 2);
-export const LAMETRIC_TEMPLATE = JSON.stringify({ priority: 'info', model: { cycles: 1, frames: [{ icon: 'i54031', text: '{{title}}' }, { icon: 'i54031', text: '{{artist}}' }] } }, null, 2);
-export const LAMETRIC_DIY_TEMPLATE = JSON.stringify({ frames: [{ icon: 'i54031', text: '{{title}}' }, { icon: 'i54031', text: '{{artist}}' }] }, null, 2);
+export const LAMETRIC_TEMPLATE = JSON.stringify({ priority: 'info', model: { cycles: 1, frames: [{ icon: 'i54031', text: '{{title}}' }, { icon: 'i45197', text: '{{artist}}' }] } }, null, 2);
+export const LAMETRIC_DIY_TEMPLATE = JSON.stringify({ frames: [{ icon: 'i54031', text: '{{title}}' }, { icon: 'i45197', text: '{{artist}}' }] }, null, 2);
 export const SAMPLE = { title: '接続テスト', artist: 'YouTube Music' };
 const VARIABLES = ['source', 'title', 'artist'];
 export function newTarget(preset = 'webhook') {
@@ -84,7 +84,7 @@ export function validateConfig(value) {
 }
 export function migrateSettings(settings) {
   if (!settings?.host) return { version: 5, enabled: false, targets: [] };
-  return { version: 5, enabled: !!settings.enabled, targets: [{ ...newTarget('lametric'), id: 'lametric', url: `http://${normalizeHost(settings.host)}:8080/api/v2/device/notifications`, template: JSON.stringify({ priority: 'info', model: { cycles: settings.cycles ?? 1, frames: [{ icon: 'i54031', text: '{{title}}' }, { icon: 'i54031', text: '{{artist}}' }] } }, null, 2), auth: { type: 'basic', username: 'dev', password: settings.apiKey } }] };
+  return { version: 5, enabled: !!settings.enabled, targets: [{ ...newTarget('lametric'), id: 'lametric', url: `http://${normalizeHost(settings.host)}:8080/api/v2/device/notifications`, template: JSON.stringify({ priority: 'info', model: { cycles: settings.cycles ?? 1, frames: [{ icon: 'i54031', text: '{{title}}' }, { icon: 'i45197', text: '{{artist}}' }] } }, null, 2), auth: { type: 'basic', username: 'dev', password: settings.apiKey } }] };
 }
 // Upgrade saved templates without invalidating custom payloads or changing credentials.
 export function migrateConfig(config) {
@@ -103,7 +103,7 @@ export function migrateConfig(config) {
     const standardFrames = parsed?.model?.frames;
     if (target.preset === 'lametric' && Array.isArray(standardFrames) && standardFrames.length === 2 &&
         standardFrames.every((frame, index) => frame?.text === ['{{title}}', '{{artist}}'][index] && Object.keys(frame).length === 1)) {
-      parsed.model.frames = standardFrames.map(frame => ({ icon: 'i54031', ...frame }));
+      parsed.model.frames = standardFrames.map((frame, index) => ({ icon: index === 0 ? 'i54031' : 'i45197', ...frame }));
     }
     // Remove the redundant field from the old default webhook only.
     if (target.preset === 'webhook' && parsed && Object.keys(parsed).length === 4 &&
