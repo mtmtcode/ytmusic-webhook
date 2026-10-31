@@ -15,7 +15,7 @@ YouTube Musicの曲変更を検知し、好きなURLへJSONをPOSTするChrome�
 
 変数は `{{title}}`（曲名）、`{{artist}}`（アーティスト）、`{{source}}`（`youtube-music`）。
 
-LaMetricはホストを変更し、[端末のAPIキー](https://developer.lametric.com/user/devices)を入力。ループ回数はJSONの `cycles` を直接編集します。LaMetricの接続テストは接続確認のみで、通知は出ません。
+LaMetricはホストを変更し、[端末のAPIキー](https://developer.lametric.com/user/devices)を入力。曲名・アーティスト名の両フレームに音楽アイコン（`i1850`）を表示します。変更する場合はJSONの各フレームの `icon` を編集し、非表示にする場合はその項目を削除してください。アイコンIDは [LaMetricのアイコン一覧](https://developer.lametric.com/icons) で探せます。ループ回数はJSONの `cycles` を直接編集します。LaMetricの接続テストは接続確認のみで、通知は出ません。
 
 ## 更新
 

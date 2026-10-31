@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "YouTube Music Webhook",
-  "version": "3.1.0",
+  "version": "3.2.0",
   "description": "再生中の曲を送信先ごとのJSONでPOST。LaMetric TIMEプリセット対応。",
   "minimum_chrome_version": "120",
   "permissions": [
