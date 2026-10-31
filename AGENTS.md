@@ -6,6 +6,12 @@ YouTube Musicの曲情報を任意のWebhookへ送信する汎用Chrome拡張。
 
 Chrome Manifest V3 / JavaScript。ビルド、フレームワーク、外部依存は不要。
 
+## 作業フロー
+
+- 作業を指示されたら、原則として専用のgit worktreeとブランチを作成して作業する。
+- 変更後は必要な検証を行い、コミットしてリモートへpushし、Pull Requestを作成するところまで進める。
+- ユーザーから作業方法や完了範囲の指定がある場合は、その指示を優先する。
+
 ## 送信先とJSONテンプレート
 
 - 対応変数は `{{title}}`、`{{artist}}`、`{{source}}`。変数はJSONの文字列値に使用する。
