@@ -1,0 +1,1 @@
+{"private":true,"type":"module","scripts":{"test":"node tests/core.test.js && node tests/background.test.js && node tests/content.test.js"}}
