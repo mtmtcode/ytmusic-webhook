@@ -11,6 +11,8 @@ YouTube Musicの曲変更を検知し、好きなURLへJSONをPOSTするChrome�
 
 ## 設定
 
+![YouTube Music Webhookの設定画面](docs/images/settings.png)
+
 拡張アイコンから送信先を追加し、URL・認証・JSONを設定。全体と送信先の通知をONにして「すべて保存」。
 
 変数は `{{title}}`（曲名）、`{{artist}}`（アーティスト）、`{{source}}`（`youtube-music`）。
