@@ -124,7 +124,7 @@ chrome.runtime.onMessage.addListener((message, sender, respond) => {
     if (message?.type === 'test') { const target = validateTarget(message.target); await permitted(target); return target; }
     throw new Error('不明な操作です。');
   }).then(async target => {
-    if (message.type === 'test') await sendRequest(target, target.preset === 'lametric' ? 'GET' : 'POST', target.preset === 'lametric' ? {} : { body: renderTemplate(target.template, SAMPLE) });
+    if (message.type === 'test') await sendRequest(target, 'POST', { body: renderTemplate(target.template, SAMPLE) });
   });
   task.then(() => { respond({ ok: true }); kick(); }, error => respond({ ok: false, error: error.message }));
   return true;
