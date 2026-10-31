@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { newTarget, validateTarget } from '../targets.js';
 const lametric = () => validateTarget({ ...newTarget('lametric'), id: 'clock', auth: { type: 'basic', username: 'dev', password: 'test-key' } });
 const webhook = () => ({ ...newTarget('webhook'), id: 'pi' });
-const config = targets => ({ version: 3, revision: 'r1', enabled: true, targets });
+const config = targets => ({ version: 4, revision: 'r1', enabled: true, targets });
 const job = title => ({ song: { title, artist: 'Artist' }, key: JSON.stringify([title, 'Artist']), revision: 'r1', token: title, attempts: 0 });
 const tick = () => new Promise(resolve => setImmediate(resolve));
 async function settle() { for (let i = 0; i < 20; i++) await tick(); }
@@ -64,7 +64,7 @@ test('worker lifecycle, multi-destination delivery and concurrency', async t => 
     await w.song('B'); await w.song('C'); release();
     await until(() => w.data.deliveries.clock?.lastKey === job('C').key); await settle();
     assert.deepEqual(w.calls.map(c => c.method), ['POST', 'POST']);
-    assert.equal(JSON.parse(w.calls.at(-1).body).model.frames[0].text, 'C / Artist');
+    assert.deepEqual(JSON.parse(w.calls.at(-1).body).model.frames, [{ text: 'C' }, { text: 'Artist' }]);
   });
   await t.test('OFF while POST is running prevents the following POST', async () => {
     let release;

@@ -15,7 +15,7 @@ test('webhook URLs support HTTP/HTTPS and ports, disallow credentials and unsafe
 });
 test('templates preserve JSON types, safely escape metadata and only expand once', () => {
   const song = { title: '"Quoted"\n{{artist}}', artist: 'Artist\\Name' };
-  const template = '{"title":"{{title}}","nested":["{{artist}}",true,null,4],"message":"Now: {{text}}","cycles":0}';
+  const template = '{"title":"{{title}}","nested":["{{artist}}",true,null,4],"message":"Now: {{title}} / {{artist}}","cycles":0}';
   const payload = renderTemplate(template, song);
   assert.equal(payload.title, song.title);
   assert.equal(payload.nested[0], song.artist);
@@ -29,7 +29,7 @@ test('templates preserve JSON types, safely escape metadata and only expand once
 });
 test('LaMetric preset and old settings migration retain credentials and cycles', () => {
   const target = lametric();
-  assert.deepEqual(renderTemplate(target.template, { title: 'A', artist: 'B' }), { priority: 'info', model: { cycles: 1, frames: [{ text: 'A / B' }] } });
+  assert.deepEqual(renderTemplate(target.template, { title: 'A', artist: 'B' }), { priority: 'info', model: { cycles: 1, frames: [{ text: 'A' }, { text: 'B' }] } });
   const migrated = migrateSettings({ host: 'clock.local', apiKey: 'secret', cycles: 0, enabled: true });
   assert.equal(migrated.targets[0].auth.password, 'secret');
   assert.equal(migrated.targets[0].url, 'http://clock.local:8080/api/v2/device/notifications');
@@ -68,4 +68,28 @@ test('authentication, HTTP errors, network errors and timeouts', async () => {
   await assert.rejects(sendRequest(target, 'POST', { fetcher: async () => new Response(null, { status: 500 }) }), e => e.ambiguous);
   await assert.rejects(sendRequest(target, 'GET', { fetcher: async () => { throw new TypeError('offline'); } }), /接続できません/);
   await assert.rejects(sendRequest(target, 'POST', { timeout: 5, fetcher: (_url, { signal }) => new Promise((_resolve, reject) => signal.addEventListener('abort', () => reject(new DOMException('timeout', 'AbortError')))) }), e => e.ambiguous && /タイムアウト/.test(e.message));
+});
+
+test('removed text variable and redundant default field stay out of new presets', () => {
+  const song = { title: 'Title', artist: 'Artist' };
+  assert.throws(() => renderTemplate('{"message":"{{text}}"}', song), /未対応/);
+  assert.deepEqual(renderTemplate(webhook().template, song), { source: 'youtube-music', title: 'Title', artist: 'Artist' });
+});
+
+test('upgrade splits default LaMetric frames and preserves custom templates and credentials', () => {
+  const clock = lametric();
+  const old = { ...clock, template: '{"priority":"info","model":{"cycles":0,"frames":[{"text":"{{text}}"}]}}' };
+  const custom = { ...clock, id: 'custom', template: '{"model":{"frames":[{"icon":"i123","text":"Now: {{text}}"}]}}' };
+  const generic = { ...webhook(), template: '{"source":"{{source}}","title":"{{title}}","artist":"{{artist}}","text":"{{text}}"}' };
+  const migrated = migrateConfig({ version: 3, enabled: true, targets: [old, custom, generic] });
+  assert.equal(migrated.version, 4);
+  const model = JSON.parse(migrated.targets[0].template).model;
+  assert.equal(model.cycles, 0);
+  assert.deepEqual(model.frames, [{ text: '{{title}}' }, { text: '{{artist}}' }]);
+  assert.deepEqual(migrated.targets[0].auth, old.auth);
+  assert.equal(migrated.targets[0].url, old.url);
+  assert.deepEqual(JSON.parse(migrated.targets[1].template).model.frames, [{ icon: 'i123', text: 'Now: {{title}} / {{artist}}' }]);
+  assert.equal('text' in JSON.parse(migrated.targets[2].template), false);
+  migrated.targets.forEach(validateTarget);
+  assert.deepEqual(migrateConfig(migrated), migrated);
 });

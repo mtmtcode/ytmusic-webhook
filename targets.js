@@ -1,9 +1,9 @@
 import { normalizeHost, songText, ApiError } from './core.js';
 
-export const WEBHOOK_TEMPLATE = JSON.stringify({ source: '{{source}}', title: '{{title}}', artist: '{{artist}}', text: '{{text}}' }, null, 2);
-export const LAMETRIC_TEMPLATE = JSON.stringify({ priority: 'info', model: { cycles: 1, frames: [{ text: '{{text}}' }] } }, null, 2);
+export const WEBHOOK_TEMPLATE = JSON.stringify({ source: '{{source}}', title: '{{title}}', artist: '{{artist}}' }, null, 2);
+export const LAMETRIC_TEMPLATE = JSON.stringify({ priority: 'info', model: { cycles: 1, frames: [{ text: '{{title}}' }, { text: '{{artist}}' }] } }, null, 2);
 export const SAMPLE = { title: '接続テスト', artist: 'YouTube Music' };
-const VARIABLES = ['source', 'title', 'artist', 'text'];
+const VARIABLES = ['source', 'title', 'artist'];
 export function newTarget(preset = 'webhook') {
   return { id: crypto.randomUUID(), name: preset === 'lametric' ? 'LaMetric TIME' : 'Webhook', preset, enabled: true,
     url: preset === 'lametric' ? 'http://192.168.1.20:8080/api/v2/device/notifications' : 'http://raspberrypi.local:3000/now-playing',
@@ -24,9 +24,8 @@ export function renderTemplate(template, song) {
   if (typeof template !== 'string' || template.length > 65536) throw new Error('JSONテンプレートは64KB以内にしてください。');
   let parsed;
   try { parsed = JSON.parse(template); } catch { throw new Error('JSONテンプレートの構文が正しくありません。変数も二重引用符で囲んでください。'); }
-  const text = songText(song);
-  if (!text) throw new Error('曲名とアーティスト名が必要です。');
-  const values = { source: 'youtube-music', title: song.title.trim(), artist: song.artist.trim(), text };
+  if (!songText(song)) throw new Error('曲名とアーティスト名が必要です。');
+  const values = { source: 'youtube-music', title: song.title.trim(), artist: song.artist.trim() };
   function walk(value, depth = 0) {
     if (depth > 64) throw new Error('JSONテンプレートの入れ子が深すぎます。');
     if (typeof value === 'string') {
@@ -76,25 +75,40 @@ export function validateConfig(value) {
   if (typeof value?.enabled !== 'boolean' || !Array.isArray(value.targets) || value.targets.length > 20) throw new Error('設定には最大20件の送信先を指定してください。');
   const targets = value.targets.map(validateTarget);
   if (new Set(targets.map(target => target.id)).size !== targets.length) throw new Error('送信先IDが重複しています。');
-  return { version: 3, enabled: value.enabled, targets };
+  return { version: 4, enabled: value.enabled, targets };
 }
 export function migrateSettings(settings) {
-  if (!settings?.host) return { version: 3, enabled: false, targets: [] };
-  return { version: 3, enabled: !!settings.enabled, targets: [{ ...newTarget('lametric'), id: 'lametric', url: `http://${normalizeHost(settings.host)}:8080/api/v2/device/notifications`, template: JSON.stringify({ priority: 'info', model: { cycles: settings.cycles ?? 1, frames: [{ text: '{{text}}' }] } }, null, 2), auth: { type: 'basic', username: 'dev', password: settings.apiKey } }] };
+  if (!settings?.host) return { version: 4, enabled: false, targets: [] };
+  return { version: 4, enabled: !!settings.enabled, targets: [{ ...newTarget('lametric'), id: 'lametric', url: `http://${normalizeHost(settings.host)}:8080/api/v2/device/notifications`, template: JSON.stringify({ priority: 'info', model: { cycles: settings.cycles ?? 1, frames: [{ text: '{{title}}' }, { text: '{{artist}}' }] } }, null, 2), auth: { type: 'basic', username: 'dev', password: settings.apiKey } }] };
 }
-// Convert the retired cycles variable to a literal once when upgrading saved settings.
+// Upgrade saved templates without invalidating custom payloads or changing credentials.
 export function migrateConfig(config) {
   if (!config) return null;
-  return { ...config, version: 3, targets: config.targets.map(target => {
+  return { ...config, version: 4, targets: config.targets.map(target => {
     const { cycles, ...rest } = target;
-    if (config.version >= 3 || !target.template.includes('{{cycles}}')) return rest;
+    if (config.version >= 4) return rest;
+    const parsed = JSON.parse(target.template);
+    const frames = parsed?.model?.frames;
+    // Upgrade the old plain combined frame; retain custom frames (icons, etc.).
+    if (target.preset === 'lametric' && Array.isArray(frames) && frames.length === 1 &&
+        frames[0]?.text === '{{text}}' && Object.keys(frames[0]).length === 1) {
+      parsed.model.frames = [{ text: '{{title}}' }, { text: '{{artist}}' }];
+    }
+    // Remove the redundant field from the old default webhook only.
+    if (target.preset === 'webhook' && parsed && Object.keys(parsed).length === 4 &&
+        parsed.source === '{{source}}' && parsed.title === '{{title}}' &&
+        parsed.artist === '{{artist}}' && parsed.text === '{{text}}') delete parsed.text;
     function inline(value) {
-      if (typeof value === 'string') return value === '{{cycles}}' ? (cycles ?? 1) : value.replaceAll('{{cycles}}', String(cycles ?? 1));
+      if (typeof value === 'string') {
+        const expanded = value.replaceAll('{{text}}', '{{title}} / {{artist}}');
+        if (config.version >= 3) return expanded;
+        return expanded === '{{cycles}}' ? (cycles ?? 1) : expanded.replaceAll('{{cycles}}', String(cycles ?? 1));
+      }
       if (Array.isArray(value)) return value.map(inline);
       if (value && typeof value === 'object') return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, inline(item)]));
       return value;
     }
-    return { ...rest, template: JSON.stringify(inline(JSON.parse(target.template)), null, 2) };
+    return { ...rest, template: JSON.stringify(inline(parsed), null, 2) };
   }) };
 }
 function utf8Base64(text) { return btoa(Array.from(new TextEncoder().encode(text), byte => String.fromCharCode(byte)).join('')); }
