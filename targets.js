@@ -1,7 +1,7 @@
 import { normalizeHost, songText, ApiError } from './core.js';
 
 export const WEBHOOK_TEMPLATE = JSON.stringify({ source: '{{source}}', title: '{{title}}', artist: '{{artist}}' }, null, 2);
-export const LAMETRIC_TEMPLATE = JSON.stringify({ priority: 'info', model: { cycles: 1, frames: [{ text: '{{title}}' }, { text: '{{artist}}' }] } }, null, 2);
+export const LAMETRIC_TEMPLATE = JSON.stringify({ priority: 'info', model: { cycles: 1, frames: [{ icon: 'i1850', text: '{{title}}' }, { icon: 'i1850', text: '{{artist}}' }] } }, null, 2);
 export const SAMPLE = { title: '接続テスト', artist: 'YouTube Music' };
 const VARIABLES = ['source', 'title', 'artist'];
 export function newTarget(preset = 'webhook') {
@@ -75,24 +75,30 @@ export function validateConfig(value) {
   if (typeof value?.enabled !== 'boolean' || !Array.isArray(value.targets) || value.targets.length > 20) throw new Error('設定には最大20件の送信先を指定してください。');
   const targets = value.targets.map(validateTarget);
   if (new Set(targets.map(target => target.id)).size !== targets.length) throw new Error('送信先IDが重複しています。');
-  return { version: 4, enabled: value.enabled, targets };
+  return { version: 5, enabled: value.enabled, targets };
 }
 export function migrateSettings(settings) {
-  if (!settings?.host) return { version: 4, enabled: false, targets: [] };
-  return { version: 4, enabled: !!settings.enabled, targets: [{ ...newTarget('lametric'), id: 'lametric', url: `http://${normalizeHost(settings.host)}:8080/api/v2/device/notifications`, template: JSON.stringify({ priority: 'info', model: { cycles: settings.cycles ?? 1, frames: [{ text: '{{title}}' }, { text: '{{artist}}' }] } }, null, 2), auth: { type: 'basic', username: 'dev', password: settings.apiKey } }] };
+  if (!settings?.host) return { version: 5, enabled: false, targets: [] };
+  return { version: 5, enabled: !!settings.enabled, targets: [{ ...newTarget('lametric'), id: 'lametric', url: `http://${normalizeHost(settings.host)}:8080/api/v2/device/notifications`, template: JSON.stringify({ priority: 'info', model: { cycles: settings.cycles ?? 1, frames: [{ icon: 'i1850', text: '{{title}}' }, { icon: 'i1850', text: '{{artist}}' }] } }, null, 2), auth: { type: 'basic', username: 'dev', password: settings.apiKey } }] };
 }
 // Upgrade saved templates without invalidating custom payloads or changing credentials.
 export function migrateConfig(config) {
   if (!config) return null;
-  return { ...config, version: 4, targets: config.targets.map(target => {
+  return { ...config, version: 5, targets: config.targets.map(target => {
     const { cycles, ...rest } = target;
-    if (config.version >= 4) return rest;
+    if (config.version >= 5) return rest;
     const parsed = JSON.parse(target.template);
     const frames = parsed?.model?.frames;
     // Upgrade the old plain combined frame; retain custom frames (icons, etc.).
     if (target.preset === 'lametric' && Array.isArray(frames) && frames.length === 1 &&
         frames[0]?.text === '{{text}}' && Object.keys(frames[0]).length === 1) {
       parsed.model.frames = [{ text: '{{title}}' }, { text: '{{artist}}' }];
+    }
+    // Add icons only to the standard two plain frames; preserve custom frames.
+    const standardFrames = parsed?.model?.frames;
+    if (target.preset === 'lametric' && Array.isArray(standardFrames) && standardFrames.length === 2 &&
+        standardFrames.every((frame, index) => frame?.text === ['{{title}}', '{{artist}}'][index] && Object.keys(frame).length === 1)) {
+      parsed.model.frames = standardFrames.map(frame => ({ icon: 'i1850', ...frame }));
     }
     // Remove the redundant field from the old default webhook only.
     if (target.preset === 'webhook' && parsed && Object.keys(parsed).length === 4 &&
