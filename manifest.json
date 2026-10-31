@@ -1,0 +1,34 @@
+{
+  "manifest_version": 3,
+  "name": "YouTube Music Webhook",
+  "version": "3.0.1",
+  "description": "再生中の曲を送信先ごとのJSONでPOST。LaMetric TIMEプリセット対応。",
+  "minimum_chrome_version": "120",
+  "permissions": [
+    "storage",
+    "alarms"
+  ],
+  "optional_host_permissions": [
+    "http://*/*",
+    "https://*/*"
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://music.youtube.com/*"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "options_page": "options.html",
+  "action": {
+    "default_title": "Webhook設定を開く"
+  }
+}
