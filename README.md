@@ -21,11 +21,11 @@ YouTube Musicの曲変更を検知し、好きなURLへJSONをPOSTするChrome�
 
 `git pull`（ZIPなら同じフォルダーに上書き）→ `chrome://extensions` で拡張の↻ → YouTube Musicのタブを再読み込み。
 
-開発・実装のメモは [AGENTS.md](AGENTS.md)。
+## 使用例：LaMetric TIME
 
-## LaMetric TIME
+LaMetric TIMEに曲名とアーティストを表示できます。用途に合わせて、次のプリセットを選びます。
 
-- **LaMetric TIME**（Notification）：曲変更時に一時的な通知を表示します。既存の通知プリセットです。
+- **LaMetric TIME**（Notification）：曲変更時に一時的な通知を表示します。
 - **LaMetric TIME - My Data DIY**：My Data DIYの通常のアプリ画面に曲情報を保持・更新します。
 
 My Data DIYの設定手順：
