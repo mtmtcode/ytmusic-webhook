@@ -61,8 +61,8 @@ LaMetricは送信先設定のプリセットの1つ。端末のローカルDevic
   "model": {
     "cycles": 1,
     "frames": [
-      { "icon": "i1850", "text": "{{title}}" },
-      { "icon": "i1850", "text": "{{artist}}" }
+      { "icon": "i54031", "text": "{{title}}" },
+      { "icon": "i54031", "text": "{{artist}}" }
     ]
   }
 }

@@ -29,7 +29,7 @@ test('templates preserve JSON types, safely escape metadata and only expand once
 });
 test('LaMetric preset and old settings migration retain credentials and cycles', () => {
   const target = lametric();
-  assert.deepEqual(renderTemplate(target.template, { title: 'A', artist: 'B' }), { priority: 'info', model: { cycles: 1, frames: [{ icon: 'i1850', text: 'A' }, { icon: 'i1850', text: 'B' }] } });
+  assert.deepEqual(renderTemplate(target.template, { title: 'A', artist: 'B' }), { priority: 'info', model: { cycles: 1, frames: [{ icon: 'i54031', text: 'A' }, { icon: 'i54031', text: 'B' }] } });
   const migrated = migrateSettings({ host: 'clock.local', apiKey: 'secret', cycles: 0, enabled: true });
   assert.equal(migrated.targets[0].auth.password, 'secret');
   assert.equal(migrated.targets[0].url, 'http://clock.local:8080/api/v2/device/notifications');
@@ -76,13 +76,13 @@ test('icon migration preserves custom frames and allows removing icons after upg
   const custom = { ...clock, id: 'custom', template: JSON.stringify({ model: { frames: [{ icon: 'i123', text: '{{title}}' }, { text: '{{artist}}' }] } }) };
   const generic = { ...webhook(), template: plain.template };
   const migrated = migrateConfig({ version: 4, enabled: true, targets: [plain, custom, generic] });
-  assert.deepEqual(JSON.parse(migrated.targets[0].template).model, { cycles: 0, frames: [{ icon: 'i1850', text: '{{title}}' }, { icon: 'i1850', text: '{{artist}}' }] });
+  assert.deepEqual(JSON.parse(migrated.targets[0].template).model, { cycles: 0, frames: [{ icon: 'i54031', text: '{{title}}' }, { icon: 'i54031', text: '{{artist}}' }] });
   assert.deepEqual(JSON.parse(migrated.targets[1].template), JSON.parse(custom.template));
   assert.deepEqual(JSON.parse(migrated.targets[2].template), JSON.parse(generic.template));
   assert.deepEqual(migrateConfig(migrated), migrated);
   migrated.targets[0].template = plain.template;
   assert.equal(migrateConfig(migrated).targets[0].template, plain.template);
-  assert.ok(JSON.parse(migrateSettings({ host: 'clock.local', apiKey: 'key' }).targets[0].template).model.frames.every(frame => frame.icon === 'i1850'));
+  assert.ok(JSON.parse(migrateSettings({ host: 'clock.local', apiKey: 'key' }).targets[0].template).model.frames.every(frame => frame.icon === 'i54031'));
 });
 
 test('removed text variable and redundant default field stay out of new presets', () => {
@@ -100,7 +100,7 @@ test('upgrade splits default LaMetric frames and preserves custom templates and 
   assert.equal(migrated.version, 5);
   const model = JSON.parse(migrated.targets[0].template).model;
   assert.equal(model.cycles, 0);
-  assert.deepEqual(model.frames, [{ icon: 'i1850', text: '{{title}}' }, { icon: 'i1850', text: '{{artist}}' }]);
+  assert.deepEqual(model.frames, [{ icon: 'i54031', text: '{{title}}' }, { icon: 'i54031', text: '{{artist}}' }]);
   assert.deepEqual(migrated.targets[0].auth, old.auth);
   assert.equal(migrated.targets[0].url, old.url);
   assert.deepEqual(JSON.parse(migrated.targets[1].template).model.frames, [{ icon: 'i123', text: 'Now: {{title}} / {{artist}}' }]);
@@ -111,14 +111,14 @@ test('upgrade splits default LaMetric frames and preserves custom templates and 
 
 test('My Data DIY preset renders direct frames and retains edited configuration', async () => {
   const { readFile } = await import('node:fs/promises');
-  assert.match(await readFile(new URL('../options.html', import.meta.url), 'utf8'), /<option value="lametric-diy">LaMetric TIME - My Data DIY<\/option>/);
+  assert.match(await readFile(new URL('../options.html', import.meta.url), 'utf8'), /<button type="button" id="add-lametric-diy">＋ LaMetric My Data DIY<\/button>/);
   const initial = newTarget('lametric-diy');
   assert.equal(initial.name, 'LaMetric TIME - My Data DIY');
   assert.equal(initial.url, 'http://<DEVICE_IP>:8080/api/v2/widget/update/com.lametric.diy.devwidget/<WIDGET_ID>');
   assert.deepEqual(initial.auth, { type: 'basic', username: 'dev', password: '' });
   const target = validateTarget({ ...initial, url: 'http://clock.local:8080/api/v2/widget/update/com.lametric.diy.devwidget/user-widget', auth: { ...initial.auth, password: 'device-key' } });
   const payload = renderTemplate(target.template, { title: '曲名 "A"', artist: '歌手' });
-  assert.deepEqual(payload, { frames: [{ icon: 'i1850', text: '曲名 "A"' }, { icon: 'i1850', text: '歌手' }] });
+  assert.deepEqual(payload, { frames: [{ icon: 'i54031', text: '曲名 "A"' }, { icon: 'i54031', text: '歌手' }] });
   const config = validateConfig({ enabled: true, targets: [target] });
   assert.equal(config.version, 5);
   assert.deepEqual(validateConfig(migrateConfig(JSON.parse(JSON.stringify(config)))), config);

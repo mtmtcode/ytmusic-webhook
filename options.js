@@ -4,7 +4,7 @@ let busy = false;
 const field = (card, key) => card.querySelector(`[data-field="${key}"]`);
 function rawTarget(card) {
   const get = key => field(card, key).value;
-  return { id: card.dataset.id, name: get('name'), preset: get('preset'), enabled: field(card, 'enabled').checked,
+  return { id: card.dataset.id, name: get('name'), preset: card.dataset.preset, enabled: field(card, 'enabled').checked,
     url: get('url'), template: get('template'),
     auth: { type: get('authType'), username: get('username'), password: get('password'), token: get('token') } };
 }
@@ -23,7 +23,8 @@ function refresh(card) {
 }
 function fill(card, target) {
   card.dataset.id = target.id;
-  for (const key of ['name', 'preset', 'url', 'template']) field(card, key).value = target[key];
+  card.dataset.preset = target.preset;
+  for (const key of ['name', 'url', 'template']) field(card, key).value = target[key];
   field(card, 'enabled').checked = target.enabled;
   field(card, 'authType').value = target.auth.type;
   for (const key of ['username', 'password', 'token']) field(card, key).value = target.auth[key] || '';
@@ -33,10 +34,6 @@ function addTarget(target) {
   const card = $('target-card').content.firstElementChild.cloneNode(true);
   fill(card, target);
   card.addEventListener('input', () => refresh(card));
-  field(card, 'preset').addEventListener('change', () => {
-    const preset = newTarget(field(card, 'preset').value);
-    fill(card, { ...preset, id: card.dataset.id, enabled: field(card, 'enabled').checked });
-  });
   card.querySelector('.remove').addEventListener('click', () => { card.remove(); });
   card.querySelector('.test').addEventListener('click', () => { void perform('test', card); });
   $('targets').append(card);
@@ -68,6 +65,7 @@ async function perform(type, card) {
 $('settings').addEventListener('submit', event => { event.preventDefault(); void perform('save'); });
 $('add-webhook').addEventListener('click', () => addTarget(newTarget('webhook')));
 $('add-lametric').addEventListener('click', () => addTarget(newTarget('lametric')));
+$('add-lametric-diy').addEventListener('click', () => addTarget(newTarget('lametric-diy')));
 const stored = await chrome.storage.local.get(['config', 'settings']);
 const config = migrateConfig(stored.config) || migrateSettings(stored.settings);
 $('enabled').checked = config.enabled;

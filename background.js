@@ -90,7 +90,7 @@ async function acceptSong(message, sender) {
   if (!songText(message.song)) throw new Error('曲名とアーティスト名が必要です。');
   const { source, config, observedSong, deliveries = {} } = await read(['source', 'config', 'observedSong', 'deliveries']);
   const now = Date.now();
-  if (source && source.tabId !== sender.tab.id && now - source.at < 90000) {
+  if (source && source.tabId !== sender.tab.id && now - source.at < 10000) {
     let exists = true;
     try { await chrome.tabs.get(source.tabId); } catch { exists = false; }
     if (exists && (source.playing || !message.song.playing)) return;

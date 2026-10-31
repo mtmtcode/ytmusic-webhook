@@ -29,7 +29,7 @@ YouTube Musicの曲変更を検知し、好きなURLへJSONをPOSTするChrome�
 My Data DIYの設定手順：
 
 1. LaMetric TIMEにMy Data DIYをインストールし、アプリ設定で **HTTP Push** を選択します。
-2. 拡張の設定で送信先を追加し、プリセットを **LaMetric TIME - My Data DIY** に変更します。
+2. 拡張の設定で **＋ LaMetric My Data DIY** を押して送信先を追加します。
 3. POST先URLの `<DEVICE_IP>` と `<WIDGET_ID>` を、山括弧ごと端末のIPアドレスとアプリ設定に表示されるWidget ID（Push URLの末尾）に置き換えます。
    `http://<DEVICE_IP>:8080/api/v2/widget/update/com.lametric.diy.devwidget/<WIDGET_ID>`
    アプリに表示される実際のPush URLを優先してください。URLは通常の入力欄で編集・保存できます。
