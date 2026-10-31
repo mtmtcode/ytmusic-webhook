@@ -29,7 +29,7 @@ test('templates preserve JSON types, safely escape metadata and only expand once
 });
 test('LaMetric preset and old settings migration retain credentials and cycles', () => {
   const target = lametric();
-  assert.deepEqual(renderTemplate(target.template, { title: 'A', artist: 'B' }), { priority: 'info', model: { cycles: 1, frames: [{ icon: 'i54031', text: 'A' }, { icon: 'i45197', text: 'B' }] } });
+  assert.deepEqual(renderTemplate(target.template, { title: 'A', artist: 'B' }), { priority: 'info', model: { cycles: 1, frames: [{ icon: 'i54031', text: 'A' }, { icon: 'i77552', text: 'B' }] } });
   const migrated = migrateSettings({ host: 'clock.local', apiKey: 'secret', cycles: 0, enabled: true });
   assert.equal(migrated.targets[0].auth.password, 'secret');
   assert.equal(migrated.targets[0].url, 'http://clock.local:8080/api/v2/device/notifications');
@@ -76,13 +76,13 @@ test('icon migration preserves custom frames and allows removing icons after upg
   const custom = { ...clock, id: 'custom', template: JSON.stringify({ model: { frames: [{ icon: 'i123', text: '{{title}}' }, { text: '{{artist}}' }] } }) };
   const generic = { ...webhook(), template: plain.template };
   const migrated = migrateConfig({ version: 4, enabled: true, targets: [plain, custom, generic] });
-  assert.deepEqual(JSON.parse(migrated.targets[0].template).model, { cycles: 0, frames: [{ icon: 'i54031', text: '{{title}}' }, { icon: 'i45197', text: '{{artist}}' }] });
+  assert.deepEqual(JSON.parse(migrated.targets[0].template).model, { cycles: 0, frames: [{ icon: 'i54031', text: '{{title}}' }, { icon: 'i77552', text: '{{artist}}' }] });
   assert.deepEqual(JSON.parse(migrated.targets[1].template), JSON.parse(custom.template));
   assert.deepEqual(JSON.parse(migrated.targets[2].template), JSON.parse(generic.template));
   assert.deepEqual(migrateConfig(migrated), migrated);
   migrated.targets[0].template = plain.template;
   assert.equal(migrateConfig(migrated).targets[0].template, plain.template);
-  assert.deepEqual(JSON.parse(migrateSettings({ host: 'clock.local', apiKey: 'key' }).targets[0].template).model.frames.map(frame => frame.icon), ['i54031', 'i45197']);
+  assert.deepEqual(JSON.parse(migrateSettings({ host: 'clock.local', apiKey: 'key' }).targets[0].template).model.frames.map(frame => frame.icon), ['i54031', 'i77552']);
 });
 
 test('removed text variable and redundant default field stay out of new presets', () => {
@@ -100,7 +100,7 @@ test('upgrade splits default LaMetric frames and preserves custom templates and 
   assert.equal(migrated.version, 5);
   const model = JSON.parse(migrated.targets[0].template).model;
   assert.equal(model.cycles, 0);
-  assert.deepEqual(model.frames, [{ icon: 'i54031', text: '{{title}}' }, { icon: 'i45197', text: '{{artist}}' }]);
+  assert.deepEqual(model.frames, [{ icon: 'i54031', text: '{{title}}' }, { icon: 'i77552', text: '{{artist}}' }]);
   assert.deepEqual(migrated.targets[0].auth, old.auth);
   assert.equal(migrated.targets[0].url, old.url);
   assert.deepEqual(JSON.parse(migrated.targets[1].template).model.frames, [{ icon: 'i123', text: 'Now: {{title}} / {{artist}}' }]);
