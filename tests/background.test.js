@@ -31,6 +31,22 @@ async function worker(initial = {}, fetcher = async () => Response.json({ succes
   return { data, calls, events, send, song: (title, tabId = 1, playing = true) => send({ type: 'song', song: { title, artist: 'Artist', playing } }, sender(tabId)), save: value => send({ type: 'save', config: value }, options), test: target => send({ type: 'test', target }, options) };
 }
 test('worker lifecycle, multi-destination delivery and concurrency', async t => {
+  await t.test('My Data DIY saves edited URL, restores and sends via the song queue', async () => {
+    const w = await worker(); await settle();
+    const diy = { ...newTarget('lametric-diy'), id: 'diy', url: 'http://clock.local:8080/api/v2/widget/update/com.lametric.diy.devwidget/custom-id', auth: { type: 'basic', username: 'dev', password: 'my-device-key' } };
+    assert.deepEqual(await w.save(config([diy, lametric(), webhook()])), { ok: true });
+    await settle();
+    const saved = structuredClone(w.data.config);
+    const restored = await worker({ config: saved }); await settle();
+    assert.deepEqual(restored.data.config, saved);
+    await restored.song('New song');
+    await until(() => restored.data.deliveries.pi?.lastKey); await settle();
+    const request = restored.calls.find(call => call.url === diy.url);
+    assert.equal(request.method, 'POST');
+    assert.equal(atob(request.headers.Authorization.slice(6)), 'dev:my-device-key');
+    assert.deepEqual(JSON.parse(request.body), { frames: [{ icon: 'i1850', text: 'New song' }, { icon: 'i1850', text: 'Artist' }] });
+    assert.equal(restored.calls.length, 3);
+  });
   await t.test('deduplicate reports and tabs; LaMetric only POSTs', async () => {
     const w = await worker();
     await w.song('A'); await until(() => w.data.deliveries.clock?.lastKey === job('A').key && !w.data.deliveries.clock.pending); await settle();
@@ -145,3 +161,4 @@ test('worker lifecycle, multi-destination delivery and concurrency', async t => 
     assert.equal(incomplete.ok, false); await settle(); assert.equal(w.calls.length, 0);
   });
 });
+
