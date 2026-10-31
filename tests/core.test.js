@@ -108,3 +108,27 @@ test('upgrade splits default LaMetric frames and preserves custom templates and 
   migrated.targets.forEach(validateTarget);
   assert.deepEqual(migrateConfig(migrated), migrated);
 });
+
+test('My Data DIY preset renders direct frames and retains edited configuration', async () => {
+  const { readFile } = await import('node:fs/promises');
+  assert.match(await readFile(new URL('../options.html', import.meta.url), 'utf8'), /<option value="lametric-diy">LaMetric TIME - My Data DIY<\/option>/);
+  const initial = newTarget('lametric-diy');
+  assert.equal(initial.name, 'LaMetric TIME - My Data DIY');
+  assert.equal(initial.url, 'http://<DEVICE_IP>:8080/api/v2/widget/update/com.lametric.diy.devwidget/<WIDGET_ID>');
+  assert.deepEqual(initial.auth, { type: 'basic', username: 'dev', password: '' });
+  const target = validateTarget({ ...initial, url: 'http://clock.local:8080/api/v2/widget/update/com.lametric.diy.devwidget/user-widget', auth: { ...initial.auth, password: 'device-key' } });
+  const payload = renderTemplate(target.template, { title: '曲名 "A"', artist: '歌手' });
+  assert.deepEqual(payload, { frames: [{ icon: 'i1850', text: '曲名 "A"' }, { icon: 'i1850', text: '歌手' }] });
+  const config = validateConfig({ enabled: true, targets: [target] });
+  assert.equal(config.version, 5);
+  assert.deepEqual(validateConfig(migrateConfig(JSON.parse(JSON.stringify(config)))), config);
+  for (const auth of [{ type: 'none' }, { type: 'basic', username: 'other', password: 'key' }]) assert.throws(() => validateTarget({ ...target, auth }), /Basic/);
+  await sendRequest(target, 'POST', { body: payload, fetcher: async (url, options) => {
+    assert.equal(url, target.url);
+    assert.equal(options.method, 'POST');
+    assert.equal(options.headers['Content-Type'], 'application/json');
+    assert.equal(atob(options.headers.Authorization.slice(6)), 'dev:device-key');
+    assert.deepEqual(JSON.parse(options.body), payload);
+    return new Response(null, { status: 204 });
+  } });
+});

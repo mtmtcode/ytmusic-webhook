@@ -9,10 +9,11 @@ function rawTarget(card) {
     auth: { type: get('authType'), username: get('username'), password: get('password'), token: get('token') } };
 }
 function refresh(card) {
-  const value = rawTarget(card), lametric = value.preset === 'lametric';
+  const value = rawTarget(card), lametric = ['lametric', 'lametric-diy'].includes(value.preset);
   card.querySelector('.basic-fields').hidden = value.auth.type !== 'basic';
   card.querySelector('.bearer-fields').hidden = value.auth.type !== 'bearer';
-  card.querySelector('.lametric-hint').hidden = !lametric;
+  card.querySelector('.lametric-hint').hidden = value.preset !== 'lametric';
+  card.querySelector('.lametric-diy-hint').hidden = value.preset !== 'lametric-diy';
   field(card, 'authType').disabled = lametric || busy;
   field(card, 'username').readOnly = lametric;
   card.querySelector('.password-label span').textContent = lametric ? 'LaMetric APIキー' : 'パスワード';
@@ -89,3 +90,4 @@ chrome.storage.onChanged.addListener((changes, area) => {
   for (const key of ['deliveries', 'status']) if (changes[key]) deliveryState[key] = changes[key].newValue;
   showDeliveries(deliveryState.deliveries, deliveryState.status);
 });
+
