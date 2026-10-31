@@ -16,7 +16,7 @@ function refresh(card) {
   field(card, 'authType').disabled = lametric || busy;
   field(card, 'username').readOnly = lametric;
   card.querySelector('.password-label span').textContent = lametric ? 'LaMetric APIキー' : 'パスワード';
-  card.querySelector('.test-hint').textContent = lametric ? '認証付きGETで接続を確認します。通知は作成しません。' : 'サンプル曲のJSONを実際にPOSTします。受信側の処理が実行されます。';
+  card.querySelector('.test-hint').textContent = 'サンプル曲のJSONを実際にPOSTします。受信側の処理が実行されます。';
   try { card.querySelector('.preview').textContent = JSON.stringify(renderTemplate(value.template, SAMPLE), null, 2); }
   catch (error) { card.querySelector('.preview').textContent = error.message; }
 }
@@ -60,7 +60,7 @@ async function perform(type, card) {
     const response = await chrome.runtime.sendMessage(type === 'save' ? { type, config } : { type, target });
     if (!response?.ok) throw new Error(response?.error || 'Service Workerから応答がありません。');
     result.dataset.error = 'false';
-    result.textContent = type === 'save' ? 'すべての設定を保存しました。' : target.preset === 'lametric' ? '接続成功：認証付きGETを確認しました。入力値は未保存です。' : '接続成功：サンプルJSONをPOSTしました。入力値は未保存です。';
+    result.textContent = type === 'save' ? 'すべての設定を保存しました。' : '接続成功：サンプルJSONをPOSTしました。入力値は未保存です。';
   } catch (error) { result.dataset.error = 'true'; result.textContent = error.message; }
   finally { setBusy(false); }
 }
