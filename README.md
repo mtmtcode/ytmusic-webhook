@@ -19,4 +19,4 @@ YouTube Musicの曲変更を検知し、好きなURLへJSONをPOSTするChrome�
 
 `git pull`（ZIPなら同じフォルダーに上書き）→ `chrome://extensions` で拡張の↻ → YouTube Musicのタブを再読み込み。
 
-開発・実装のメモは [agent.md](agent.md)。
+開発・実装のメモは [AGENTS.md](AGENTS.md)。
