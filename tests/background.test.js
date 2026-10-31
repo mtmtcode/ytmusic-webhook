@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { newTarget, validateTarget } from '../targets.js';
+import { newTarget, validateTarget, renderTemplate, SAMPLE } from '../targets.js';
 const lametric = () => validateTarget({ ...newTarget('lametric'), id: 'clock', auth: { type: 'basic', username: 'dev', password: 'test-key' } });
 const webhook = () => ({ ...newTarget('webhook'), id: 'pi' });
 const config = targets => ({ version: 4, revision: 'r1', enabled: true, targets });
@@ -93,11 +93,13 @@ test('worker lifecycle, multi-destination delivery and concurrency', async t => 
     w.data.deliveries.clock.pending.retryAt = 0; w.events.alarm({ name: 'recover' }); await until(() => w.data.deliveries.clock.pending === null); await settle();
     w.events.alarm({ name: 'recover' }); await settle(); assert.equal(w.calls.length, 3);
   });
-  await t.test('test performs a generic POST and a LaMetric GET without changing config', async () => {
-    const w = await worker(); await settle(); const before = structuredClone(w.data.config);
+  await t.test('test POSTs sample JSON to all presets even when OFF without changing config', async () => {
+    const w = await worker({ config: { ...config([lametric()]), enabled: false } }); await settle(); const before = structuredClone(w.data.config);
     assert.deepEqual(await w.test(webhook()), { ok: true });
-    assert.deepEqual(await w.test(lametric()), { ok: true }); await settle();
-    assert.deepEqual(w.calls.map(c => c.method), ['POST', 'GET']);
+    assert.deepEqual(await w.test({ ...lametric(), enabled: false }), { ok: true }); await settle();
+    assert.deepEqual(w.calls.map(c => c.method), ['POST', 'POST']);
+    assert.deepEqual(w.calls.map(c => JSON.parse(c.body)), [webhook(), lametric()].map(target => renderTemplate(target.template, SAMPLE)));
+    assert.equal(atob(w.calls[1].headers.Authorization.slice(6)), 'dev:test-key');
     assert.deepEqual(w.data.config, before);
   });
   await t.test('legacy settings and active ID migrate automatically', async () => {
