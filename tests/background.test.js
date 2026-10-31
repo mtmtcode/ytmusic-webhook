@@ -80,7 +80,7 @@ test('worker lifecycle, multi-destination delivery and concurrency', async t => 
     await w.song('B'); await w.song('C'); release();
     await until(() => w.data.deliveries.clock?.lastKey === job('C').key); await settle();
     assert.deepEqual(w.calls.map(c => c.method), ['POST', 'POST']);
-    assert.deepEqual(JSON.parse(w.calls.at(-1).body).model.frames, [{ icon: 'i54031', text: 'C' }, { icon: 'i45197', text: 'Artist' }]);
+    assert.deepEqual(JSON.parse(w.calls.at(-1).body).model.frames, [{ icon: 'i54031', text: 'C' }, { icon: 'i77552', text: 'Artist' }]);
   });
   await t.test('OFF while POST is running prevents the following POST', async () => {
     let release;
