@@ -3,7 +3,7 @@
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>YouTube Music Webhook 設定</title><link rel="stylesheet" href="options.css"></head>
 <body><main>
 <h1>YouTube Music Webhook</h1>
-<p>曲が変わったとき、送信先ごとのJSONでPOSTします。LaMetric TIMEにも直接送れます。</p>
+<p>曲が変わったとき、送信先ごとに選んだHTTPメソッドで送信します。LaMetric TIMEにも直接送れます。</p>
 <form id="settings">
 <label class="toggle"><input id="enabled" type="checkbox">通知をONにする（全送信先）</label>
 <div id="targets"></div>
@@ -19,9 +19,11 @@
 <div class="card-heading"><h2>送信先</h2><button class="remove secondary" type="button">削除</button></div>
 <label>名前<input data-field="name" maxlength="80" autocomplete="off"></label>
 <label class="toggle"><input data-field="enabled" type="checkbox">この送信先を有効にする</label>
-<label>POST先URL<input data-field="url" type="url" spellcheck="false" autocomplete="off"></label>
+<label>HTTPメソッド<select data-field="method"><option value="POST">POST</option><option value="GET">GET</option><option value="HEAD">HEAD</option><option value="PUT">PUT</option><option value="PATCH">PATCH</option><option value="DELETE">DELETE</option><option value="OPTIONS">OPTIONS</option></select></label>
+<p class="hint">GET・HEADは本文なしで送信します。曲情報をURLのクエリに追加する機能はありません。その他のメソッドはJSONを送信します。</p>
+<label>送信先URL<input data-field="url" type="url" spellcheck="false" autocomplete="off"></label>
 <p class="lametric-hint hint">LaMetric： http://ホスト:8080/api/v2/device/notifications</p>
-<p class="lametric-diy-hint hint">My Data DIYでHTTP Pushを選び、表示されるPush URLのIPアドレスとWidget IDをPOST先URLに設定してください。DEVICE_IP・WIDGET_IDのプレースホルダー（山括弧を含む）を置き換え、Device API Keyを入力します。</p>
+<p class="lametric-diy-hint hint">My Data DIYでHTTP Pushを選び、表示されるPush URLのIPアドレスとWidget IDを送信先URLに設定してください。DEVICE_IP・WIDGET_IDのプレースホルダー（山括弧を含む）を置き換え、Device API Keyを入力します。</p>
 <label>認証<select data-field="authType"><option value="none">なし</option><option value="basic">Basic</option><option value="bearer">Bearerトークン</option></select></label>
 <div class="basic-fields"><label>ユーザー名<input data-field="username" autocomplete="off" spellcheck="false"></label><label class="password-label"><span>パスワード</span><input data-field="password" type="password" autocomplete="off" spellcheck="false"></label></div>
 <div class="bearer-fields"><label>Bearerトークン<input data-field="token" type="password" autocomplete="off" spellcheck="false"></label></div>
@@ -32,4 +34,3 @@
 <p class="test-hint hint"></p><p class="test-result" role="status"></p>
 </section></template>
 <script type="module" src="options.js"></script></body></html>
-

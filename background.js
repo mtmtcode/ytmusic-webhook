@@ -1,5 +1,5 @@
 import { songText } from './core.js';
-import { migrateConfig, migrateSettings, validateConfig, validateTarget, targetOrigin, renderTemplate, sendRequest, SAMPLE } from './targets.js';
+import { migrateConfig, migrateSettings, validateConfig, validateTarget, targetOrigin, targetBody, sendRequest, SAMPLE } from './targets.js';
 
 const read = keys => chrome.storage.local.get(keys);
 const write = data => chrome.storage.local.set(data);
@@ -31,7 +31,7 @@ const ready = serial(async () => {
     if (!state.inflight) continue;
     if (state.pending?.token === state.inflight.token) state.pending = null;
     state.inflight = null;
-    state.status = { message: '前回のPOST結果が不明のため自動再送しません。受信側の状態を確認してください。', at: Date.now() };
+    state.status = { message: '前回の送信結果が不明のため自動再送しません。受信側の状態を確認してください。', at: Date.now() };
   }
   // Legacy POST may have completed without its ID. Do not recreate that delivery.
   if (!old.config && old.inflight) await status('旧バージョンのPOST結果が不明です。LaMetric側の表示を確認してください。');
@@ -73,7 +73,7 @@ async function processTarget(id) {
     const current = fresh.config.targets.find(item => item.id === id);
     if (!fresh.config.enabled || !current?.enabled || fresh.config.revision !== job.revision || fresh.deliveries[id]?.pending?.token !== job.token) { requested = true; return; }
     await mutateDelivery(id, latest => ({ ...latest, inflight: { token: job.token } }));
-    await sendRequest(target, 'POST', { body: renderTemplate(target.template, job.song) });
+    await sendRequest(target, target.method ?? 'POST', { body: targetBody(target, job.song) });
     await clearJob(id, job, { inflight: null, lastKey: job.key, lastRevision: job.revision });
     await deliveryStatus(id, `送信済み：${songText(job.song)}`);
   } catch (error) {
@@ -124,7 +124,7 @@ chrome.runtime.onMessage.addListener((message, sender, respond) => {
     if (message?.type === 'test') { const target = validateTarget(message.target); await permitted(target); return target; }
     throw new Error('不明な操作です。');
   }).then(async target => {
-    if (message.type === 'test') await sendRequest(target, 'POST', { body: renderTemplate(target.template, SAMPLE) });
+    if (message.type === 'test') await sendRequest(target, target.method ?? 'POST', { body: targetBody(target, SAMPLE) });
   });
   task.then(() => { respond({ ok: true }); kick(); }, error => respond({ ok: false, error: error.message }));
   return true;
@@ -134,3 +134,4 @@ chrome.runtime.onStartup.addListener(kick);
 chrome.runtime.onInstalled.addListener(kick);
 chrome.action.onClicked.addListener(() => chrome.runtime.openOptionsPage());
 void ready.then(kick, error => status(error.message));
+

@@ -1,11 +1,11 @@
-import { newTarget, migrateConfig, migrateSettings, validateTarget, validateConfig, targetOrigin, renderTemplate, SAMPLE } from './targets.js';
+import { newTarget, migrateConfig, migrateSettings, validateTarget, validateConfig, targetOrigin, renderTemplate, hasRequestBody, SAMPLE } from './targets.js';
 const $ = id => document.getElementById(id);
 let busy = false;
 const field = (card, key) => card.querySelector(`[data-field="${key}"]`);
 function rawTarget(card) {
   const get = key => field(card, key).value;
   return { id: card.dataset.id, name: get('name'), preset: card.dataset.preset, enabled: field(card, 'enabled').checked,
-    url: get('url'), template: get('template'),
+    url: get('url'), method: get('method'), template: get('template'),
     auth: { type: get('authType'), username: get('username'), password: get('password'), token: get('token') } };
 }
 function refresh(card) {
@@ -17,14 +17,19 @@ function refresh(card) {
   field(card, 'authType').disabled = lametric || busy;
   field(card, 'username').readOnly = lametric;
   card.querySelector('.password-label span').textContent = lametric ? 'LaMetric APIキー' : 'パスワード';
-  card.querySelector('.test-hint').textContent = 'サンプル曲のJSONを実際にPOSTします。受信側の処理が実行されます。';
+  const hasBody = hasRequestBody(value.method);
+  field(card, 'template').disabled = busy || !hasBody;
+  card.querySelector('.test-hint').textContent = hasBody
+    ? `サンプル曲のJSONを実際に${value.method}で送信します。受信側の処理が実行されます。`
+    : `${value.method}で本文なしのリクエストを実際に送信します。JSONテンプレートは使用しません。`;
+  if (!hasBody) { card.querySelector('.preview').textContent = '本文なし（URLのクエリへの曲情報の追加も行いません）'; return; }
   try { card.querySelector('.preview').textContent = JSON.stringify(renderTemplate(value.template, SAMPLE), null, 2); }
   catch (error) { card.querySelector('.preview').textContent = error.message; }
 }
 function fill(card, target) {
   card.dataset.id = target.id;
   card.dataset.preset = target.preset;
-  for (const key of ['name', 'url', 'template']) field(card, key).value = target[key];
+  for (const key of ['name', 'url', 'method', 'template']) field(card, key).value = target[key];
   field(card, 'enabled').checked = target.enabled;
   field(card, 'authType').value = target.auth.type;
   for (const key of ['username', 'password', 'token']) field(card, key).value = target.auth[key] || '';
@@ -58,7 +63,7 @@ async function perform(type, card) {
     const response = await chrome.runtime.sendMessage(type === 'save' ? { type, config } : { type, target });
     if (!response?.ok) throw new Error(response?.error || 'Service Workerから応答がありません。');
     result.dataset.error = 'false';
-    result.textContent = type === 'save' ? 'すべての設定を保存しました。' : '接続成功：サンプルJSONをPOSTしました。入力値は未保存です。';
+    result.textContent = type === 'save' ? 'すべての設定を保存しました。' : `接続成功：${target.method}で${hasRequestBody(target.method) ? 'サンプルJSONを' : '本文なしで'}送信しました。入力値は未保存です。`;
   } catch (error) { result.dataset.error = 'true'; result.textContent = error.message; }
   finally { setBusy(false); }
 }
@@ -88,4 +93,3 @@ chrome.storage.onChanged.addListener((changes, area) => {
   for (const key of ['deliveries', 'status']) if (changes[key]) deliveryState[key] = changes[key].newValue;
   showDeliveries(deliveryState.deliveries, deliveryState.status);
 });
-

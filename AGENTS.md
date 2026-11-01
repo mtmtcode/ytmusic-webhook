@@ -2,7 +2,7 @@
 
 ## 方針
 
-YouTube Musicの曲情報を任意のWebhookへ送信する汎用Chrome拡張。送信先ごとにURL・認証・JSONテンプレートを設定する。
+YouTube Musicの曲情報を任意のWebhookへ送信する汎用Chrome拡張。送信先ごとにURL・HTTPメソッド・認証・JSONテンプレートを設定する。
 
 Chrome Manifest V3 / JavaScript。ビルド、フレームワーク、外部依存は不要。
 
@@ -19,7 +19,8 @@ Chrome Manifest V3 / JavaScript。ビルド、フレームワーク、外部依�
 - 未対応変数、構文エラー、キーの変数使用、64KB超、64段を超える入れ子を拒否する。JavaScriptや式は評価しない。
 - 送信先は最大20件。認証はなし・Basic・Bearerに対応する。
 - URLはHTTP(S)のみ。URL内の認証情報・フラグメント・空白・ワイルドカードを拒否し、リダイレクトには追従しない。
-- POSTのHTTP 2xxを成功として扱う。応答本文が空・JSON以外でも受け付ける。
+- HTTPメソッドはPOST（既定）・GET・HEAD・PUT・PATCH・DELETE・OPTIONS。GET・HEADは本文なしでJSONテンプレートを使用しない。その他はJSON本文を送る。既存設定のメソッド未指定はPOSTとして扱う。
+- 各メソッドのHTTP 2xxを成功として扱う。応答本文が空・JSON以外でも受け付ける。
 
 ## 動作と状態管理
 
@@ -40,7 +41,7 @@ storageは `TRUSTED_CONTEXTS` に制限し、Content Scriptにはキーやトー
 
 ## 制約
 
-- 受信側のPOSTとローカル状態保存は原子的に確定できない。Worker終了や通信切断などで配信結果が不明になる場合があり、完全なexactly-once配信は保証しない。
+- 受信側の処理とローカル状態保存は原子的に確定できない。Worker終了や通信切断などで配信結果が不明になる場合があり、完全なexactly-once配信は保証しない。
 - ChromeやPCの終了・スリープ中、タブの破棄・凍結中はDOMを監視できない。バックグラウンドのタイマー抑制で通知が遅れる場合がある。
 - YouTube MusicのDOMは非公開仕様のため、UI変更に応じてセレクター調整が必要。複数アーティストは先頭リンクの表示名を使用する。
 - 認証情報はローカルに保存し、同期しない。ローカル保存は暗号化保管庫ではない。HTTPの送信先は信頼できるLANで利用する。
@@ -75,3 +76,4 @@ LaMetricは送信先設定のプリセットの1つ。端末のローカルDevic
 ```
 
 `cycles` は繰り返し回数（1は1周、0は永続表示）。`icon` はフレームの[アイコンID](https://developer.lametric.com/icons)。これらの固定値はJSONを直接編集する。表示順や既存通知の残り方は端末のキューと通知設定に依存する。
+
