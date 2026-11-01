@@ -5,13 +5,16 @@ export const LAMETRIC_TEMPLATE = JSON.stringify({ priority: 'info', model: { cyc
 export const LAMETRIC_DIY_TEMPLATE = JSON.stringify({ frames: [{ icon: 'i54031', text: '{{title}}' }, { icon: 'i45197', text: '{{artist}}' }] }, null, 2);
 export const SAMPLE = { title: '接続テスト', artist: 'YouTube Music' };
 const VARIABLES = ['source', 'title', 'artist'];
+export const HTTP_METHODS = ['POST', 'GET', 'HEAD', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'];
+export const hasRequestBody = method => !['GET', 'HEAD'].includes(method);
+export const targetBody = (target, song) => hasRequestBody(target.method ?? 'POST') ? renderTemplate(target.template, song) : undefined;
 export function newTarget(preset = 'webhook') {
   if (preset === 'lametric-diy') return { id: crypto.randomUUID(), name: 'LaMetric TIME - My Data DIY', preset, enabled: true,
     url: 'http://<DEVICE_IP>:8080/api/v2/widget/update/com.lametric.diy.devwidget/<WIDGET_ID>',
-    auth: { type: 'basic', username: 'dev', password: '' }, template: LAMETRIC_DIY_TEMPLATE };
+    method: 'POST', auth: { type: 'basic', username: 'dev', password: '' }, template: LAMETRIC_DIY_TEMPLATE };
   return { id: crypto.randomUUID(), name: preset === 'lametric' ? 'LaMetric TIME' : 'Webhook', preset, enabled: true,
     url: preset === 'lametric' ? 'http://192.168.1.20:8080/api/v2/device/notifications' : 'http://raspberrypi.local:3000/now-playing',
-    auth: preset === 'lametric' ? { type: 'basic', username: 'dev', password: '' } : { type: 'none' },
+    method: 'POST', auth: preset === 'lametric' ? { type: 'basic', username: 'dev', password: '' } : { type: 'none' },
     template: preset === 'lametric' ? LAMETRIC_TEMPLATE : WEBHOOK_TEMPLATE };
 }
 export function parseEndpoint(input) {
@@ -55,6 +58,8 @@ export function validateTarget(value) {
   if (!name || name.length > 80) throw new Error('送信先名は1〜80文字です。');
   if (!['webhook', 'lametric', 'lametric-diy'].includes(value.preset)) throw new Error('プリセットが不正です。');
   const url = parseEndpoint(value.url);
+  const method = value.method === undefined ? 'POST' : value.method;
+  if (!HTTP_METHODS.includes(method)) throw new Error('未対応のHTTPメソッドです。');
   if (typeof value.enabled !== 'boolean') throw new Error('送信先のON/OFFが不正です。');
   const supplied = value.auth || { type: 'none' };
   let auth;
@@ -73,8 +78,8 @@ export function validateTarget(value) {
     if (auth.type !== 'basic' || auth.username !== 'dev') throw new Error('LaMetricはBasic認証・ユーザー名devを使用します。');
   }
   if (value.preset === 'lametric-diy' && (auth.type !== 'basic' || auth.username !== 'dev')) throw new Error('LaMetricはBasic認証・ユーザー名devを使用します。');
-  renderTemplate(value.template, SAMPLE);
-  return { id: value.id, name, preset: value.preset, enabled: value.enabled, url: url.href, auth, template: value.template };
+  if (hasRequestBody(method)) renderTemplate(value.template, SAMPLE);
+  return { id: value.id, name, preset: value.preset, enabled: value.enabled, url: url.href, method, auth, template: value.template };
 }
 export function validateConfig(value) {
   if (typeof value?.enabled !== 'boolean' || !Array.isArray(value.targets) || value.targets.length > 20) throw new Error('設定には最大20件の送信先を指定してください。');
@@ -90,7 +95,7 @@ export function migrateSettings(settings) {
 export function migrateConfig(config) {
   if (!config) return null;
   return { ...config, version: 5, targets: config.targets.map(target => {
-    const { cycles, ...rest } = target;
+    const { cycles, ...rest } = { method: 'POST', ...target };
     if (config.version >= 5) return rest;
     const parsed = JSON.parse(target.template);
     const frames = parsed?.model?.frames;
@@ -124,23 +129,23 @@ export function migrateConfig(config) {
 }
 function utf8Base64(text) { return btoa(Array.from(new TextEncoder().encode(text), byte => String.fromCharCode(byte)).join('')); }
 export async function sendRequest(target, method, { body, fetcher = fetch, timeout = 8000 } = {}) {
-  if (!['GET', 'POST'].includes(method)) throw new ApiError('未対応のHTTPメソッドです。');
+  if (!HTTP_METHODS.includes(method)) throw new ApiError('未対応のHTTPメソッドです。');
+  const mayChangeState = !['GET', 'HEAD', 'OPTIONS'].includes(method);
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeout);
   try {
-    const headers = { 'Content-Type': 'application/json' };
+    const headers = hasRequestBody(method) ? { 'Content-Type': 'application/json' } : {};
     if (target.auth.type === 'basic') headers.Authorization = `Basic ${utf8Base64(`${target.auth.username}:${target.auth.password}`)}`;
     if (target.auth.type === 'bearer') headers.Authorization = `Bearer ${target.auth.token}`;
-    const response = await fetcher(target.url, { method, headers, body: body === undefined ? undefined : JSON.stringify(body), signal: controller.signal, redirect: 'error', credentials: 'omit', cache: 'no-store' });
+    const response = await fetcher(target.url, { method, headers, body: !hasRequestBody(method) || body === undefined ? undefined : JSON.stringify(body), signal: controller.signal, redirect: 'error', credentials: 'omit', cache: 'no-store' });
     if (!response.ok) {
       if ([401, 403].includes(response.status)) throw new ApiError('認証エラー：認証情報を確認してください。');
-      throw new ApiError(`HTTPエラー (${response.status})`, method === 'POST' && response.status >= 500);
+      throw new ApiError(`HTTPエラー (${response.status})`, mayChangeState && response.status >= 500);
     }
-    // POST delivery needs no notification ID or response JSON, including for LaMetric.
+    // Delivery needs no notification ID or response JSON, including for LaMetric.
     return null;
   } catch (error) {
     if (error instanceof ApiError) throw error;
-    throw new ApiError(error.name === 'AbortError' ? '通信がタイムアウトしました。' : '接続できません。URL、接続権限、ネットワークを確認してください。', method === 'POST');
+    throw new ApiError(error.name === 'AbortError' ? '通信がタイムアウトしました。' : '接続できません。URL、接続権限、ネットワークを確認してください。', mayChangeState);
   } finally { clearTimeout(timer); }
 }
-

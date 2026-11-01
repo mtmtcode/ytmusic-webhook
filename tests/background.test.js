@@ -31,6 +31,25 @@ async function worker(initial = {}, fetcher = async () => Response.json({ succes
   return { data, calls, events, send, song: (title, tabId = 1, playing = true) => send({ type: 'song', song: { title, artist: 'Artist', playing } }, sender(tabId)), save: value => send({ type: 'save', config: value }, options), test: target => send({ type: 'test', target }, options) };
 }
 test('worker lifecycle, multi-destination delivery and concurrency', async t => {
+  await t.test('selected methods survive save and restart and apply to tests and song delivery', async () => {
+    for (const method of ['POST', 'GET', 'HEAD', 'PUT', 'PATCH', 'DELETE', 'OPTIONS']) {
+      const target = { ...webhook(), method };
+      const w = await worker(); await settle();
+      assert.deepEqual(await w.save(config([target])), { ok: true }); await settle();
+      assert.equal(w.data.config.targets[0].method, method);
+      const restored = await worker({ config: structuredClone(w.data.config) }); await settle();
+      assert.deepEqual(await restored.test(target), { ok: true }); await settle();
+      await restored.song('New song');
+      await until(() => restored.data.deliveries.pi?.lastKey); await settle();
+      assert.deepEqual(restored.calls.map(call => call.method), [method, method]);
+      const noBody = ['GET', 'HEAD'].includes(method);
+      for (const call of restored.calls) assert.equal(call.body === undefined, noBody);
+      if (!noBody) {
+        assert.equal(JSON.parse(restored.calls[0].body).title, SAMPLE.title);
+        assert.equal(JSON.parse(restored.calls[1].body).title, 'New song');
+      }
+    }
+  });
   await t.test('My Data DIY saves edited URL, restores and sends via the song queue', async () => {
     const w = await worker(); await settle();
     const diy = { ...newTarget('lametric-diy'), id: 'diy', url: 'http://clock.local:8080/api/v2/widget/update/com.lametric.diy.devwidget/custom-id', auth: { type: 'basic', username: 'dev', password: 'my-device-key' } };
@@ -161,4 +180,3 @@ test('worker lifecycle, multi-destination delivery and concurrency', async t => 
     assert.equal(incomplete.ok, false); await settle(); assert.equal(w.calls.length, 0);
   });
 });
-

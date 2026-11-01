@@ -1,6 +1,6 @@
 # YouTube Music Webhook
 
-YouTube Musicの曲変更を検知し、好きなURLへJSONをPOSTするChrome拡張。
+YouTube Musicの曲変更を検知し、好きなURLへ選択したHTTPメソッドで送信するChrome拡張。
 
 ## インストール
 
@@ -13,7 +13,9 @@ YouTube Musicの曲変更を検知し、好きなURLへJSONをPOSTするChrome�
 
 ![YouTube Music Webhookの設定画面](docs/images/settings.png)
 
-拡張アイコンから送信先を追加し、URL・認証・JSONを設定。全体と送信先の通知をONにして「すべて保存」。
+拡張アイコンから送信先を追加し、URL・HTTPメソッド・認証・JSONを設定。全体と送信先の通知をONにして「すべて保存」。
+
+HTTPメソッドはPOST（既定）・GET・HEAD・PUT・PATCH・DELETE・OPTIONSから選べます。既存設定はPOSTを維持します。GET・HEADは本文なしで送信し、JSONテンプレートを使用しません。曲情報をURLのクエリに追加する機能はありません。それ以外はJSON本文を送ります。接続テストも選択したメソッドで実際に送信します。HTTP 2xxを成功とし、応答本文は問いません。LaMetricのプリセットは引き続きPOSTが既定です。
 
 変数は `{{title}}`（曲名）、`{{artist}}`（アーティスト）、`{{source}}`（`youtube-music`）。
 
@@ -32,7 +34,7 @@ My Data DIYの設定手順：
 
 1. LaMetric TIMEにMy Data DIYをインストールし、アプリ設定で **HTTP Push** を選択します。
 2. 拡張の設定で **＋ LaMetric My Data DIY** を押して送信先を追加します。
-3. POST先URLの `<DEVICE_IP>` と `<WIDGET_ID>` を、山括弧ごと端末のIPアドレスとアプリ設定に表示されるWidget ID（Push URLの末尾）に置き換えます。
+3. 送信先URLの `<DEVICE_IP>` と `<WIDGET_ID>` を、山括弧ごと端末のIPアドレスとアプリ設定に表示されるWidget ID（Push URLの末尾）に置き換えます。
    `http://<DEVICE_IP>:8080/api/v2/widget/update/com.lametric.diy.devwidget/<WIDGET_ID>`
    アプリに表示される実際のPush URLを優先してください。URLは通常の入力欄で編集・保存できます。
 4. Basic認証のユーザー名は `dev`。パスワード欄に自身の **Device API Key** を入力します（[デバイス管理](https://developer.lametric.com/user/devices)で取得）。
@@ -43,3 +45,4 @@ POST / `application/json` で、ルート直下の `frames` に曲名とアー�
 PushしてもMy Data DIYへの画面切り替えは自動では行いません。曲変更イベントで更新するため、再生停止後も最後の曲情報が残る場合があります。停止検知やアプリの自動切り替えは行いません。
 
 仕様確認：[公式のHTTP Push説明](https://help.lametric.com/support/solutions/articles/6000268373-my-data-diy-no-code-capabilities-)・[JSON形式](https://help.lametric.com/support/solutions/articles/6000225467-my-data-diy)・[Device APIのURLと認証](https://docs.lametric.com/en/latest/reference-docs/device-discovery.html)。My Data DIY固有のパスとWidget IDの扱いは[既存のPush実装例](https://community.homey.app/t/lametric-sky-display-local-http-push/116423)でも確認しています。
+

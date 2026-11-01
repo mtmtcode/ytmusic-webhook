@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { normalizeHost, songText } from '../core.js';
-import { validateTarget, validateConfig, newTarget, migrateSettings, migrateConfig, parseEndpoint, targetOrigin, renderTemplate, sendRequest } from '../targets.js';
+import { validateTarget, validateConfig, newTarget, migrateSettings, migrateConfig, parseEndpoint, targetOrigin, renderTemplate, sendRequest, HTTP_METHODS, targetBody } from '../targets.js';
 const lametric = () => validateTarget({ ...newTarget('lametric'), auth: { type: 'basic', username: 'dev', password: 'test-key' } });
 const webhook = () => validateTarget(newTarget('webhook'));
 test('accept unambiguous hosts, reject URLs, ports and numeric aliases', () => {
@@ -53,7 +53,7 @@ test('LaMetric POST uses dev Basic authentication and accepts an empty response'
     assert.equal(options.redirect, 'error'); assert.equal(options.body, '{"a":1}');
     return new Response(null, { status: 204 });
   } }), null);
-  await assert.rejects(sendRequest(target, 'DELETE'), /未対応/);
+  await assert.rejects(sendRequest(target, 'TRACE'), /未対応/);
   assert.equal(await sendRequest(target, 'POST', { fetcher: async () => new Response('OK') }), null);
 });
 test('generic webhooks support empty 204, Bearer and UTF8 Basic credentials', async () => {
@@ -131,4 +131,49 @@ test('My Data DIY preset renders direct frames and retains edited configuration'
     assert.deepEqual(JSON.parse(options.body), payload);
     return new Response(null, { status: 204 });
   } });
+});
+
+test('HTTP methods validate, persist and migrate without changing existing settings', () => {
+  const target = webhook();
+  for (const method of HTTP_METHODS) {
+    const config = validateConfig({ enabled: true, targets: [{ ...target, method }] });
+    assert.equal(config.targets[0].method, method);
+    assert.deepEqual(validateConfig(migrateConfig(config)), config);
+  }
+  for (const method of ['TRACE', 'CONNECT', 'post', '', null]) assert.throws(() => validateTarget({ ...target, method }), /HTTP/);
+  const { method, ...legacy } = target;
+  assert.equal(validateTarget(legacy).method, 'POST');
+  const migrated = migrateConfig({ version: 5, enabled: true, targets: [legacy] });
+  assert.deepEqual(migrated.targets[0], { ...legacy, method: 'POST' });
+  assert.deepEqual(migrateConfig(migrated), migrated);
+});
+test('all supported methods send the expected body and preserve authentication', async () => {
+  const target = { ...webhook(), auth: { type: 'bearer', token: 'key' } };
+  for (const method of HTTP_METHODS) {
+    const noBody = ['GET', 'HEAD'].includes(method);
+    const current = validateTarget({ ...target, method, ...(noBody ? { template: 'unused' } : {}) });
+    const body = targetBody(current, { title: 'Song', artist: 'Artist' });
+    await sendRequest(current, method, { body, fetcher: async (url, options) => {
+      assert.equal(url, target.url);
+      assert.equal(options.method, method);
+      assert.equal(options.headers.Authorization, 'Bearer key');
+      assert.equal(options.redirect, 'error');
+      assert.equal(options.headers['Content-Type'], noBody ? undefined : 'application/json');
+      if (noBody) assert.equal(options.body, undefined);
+      else assert.equal(JSON.parse(options.body).title, 'Song');
+      return new Response(null, { status: 204 });
+    } });
+  }
+  for (const method of ['GET', 'HEAD']) await sendRequest(target, method, { body: { ignored: true }, fetcher: async (_url, options) => {
+    assert.equal(options.body, undefined);
+    return new Response(null, { status: 204 });
+  } });
+});
+test('uncertain mutations do not permit automatic resending', async () => {
+  for (const method of HTTP_METHODS) {
+    const ambiguous = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method);
+    for (const fetcher of [async () => new Response(null, { status: 503 }), async () => { throw new TypeError('offline'); }]) {
+      await assert.rejects(sendRequest(webhook(), method, { fetcher }), error => error.ambiguous === ambiguous);
+    }
+  }
 });
