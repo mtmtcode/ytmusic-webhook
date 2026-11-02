@@ -5,8 +5,8 @@
     if (!bar) return null;
     const title = bar.querySelector('yt-formatted-string.title')?.textContent?.trim();
     const byline = bar.querySelector('yt-formatted-string.byline');
-    // Album and metadata use separate links; the first byline link is the artist.
-    const artist = byline?.querySelector('a')?.textContent?.trim();
+    // Keep all artists before the first bullet separating album and metadata.
+    const artist = byline?.textContent?.split('•', 1)[0].trim();
     if (!title || !artist) return null;
     const video = document.querySelector('video');
     return { title, artist, playing: video ? !video.paused : false };

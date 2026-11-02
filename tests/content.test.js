@@ -9,7 +9,7 @@ test('DOM observer debounces, waits for complete/stable metadata, and survives r
   const sent = [];
   const bar = { querySelector(selector) {
     if (selector.includes('title')) return { textContent: title };
-    return { querySelector() { return artist ? { textContent: artist } : null; } };
+    return { textContent: artist ? `${artist} • Album • 2023年` : '' };
   } };
   const context = {
     document: { documentElement: {}, querySelector: selector => selector === 'video' ? { paused: false } : present ? bar : null, addEventListener() {} },
@@ -24,6 +24,7 @@ test('DOM observer debounces, waits for complete/stable metadata, and survives r
   await advance(); assert.equal(sent.length, 0); // Artist has not arrived.
   artist = 'Artist'; observer(); await advance(); await advance();
   assert.equal(sent.length, 1);
+  assert.equal(sent[0].song.artist, 'Artist');
   observer(); await advance(); assert.equal(sent.length, 1);
   title = 'Temporary'; observer(); await advance();
   title = 'B'; observer(); await advance(); await advance();
@@ -31,4 +32,13 @@ test('DOM observer debounces, waits for complete/stable metadata, and survives r
   present = false; observer(); await advance();
   present = true; title = 'C'; observer(); await advance(); await advance();
   assert.equal(sent.length, 3); assert.equal(sent[2].song.title, 'C');
+  title = 'シュガーラッシュ'; artist = 'さくらみこ、星街すいせい';
+  observer(); await advance(); await advance();
+  assert.equal(sent.length, 4);
+  assert.equal(sent[3].song.artist, 'さくらみこ、星街すいせい');
+  // A change to the second artist must also be reported.
+  artist = 'さくらみこ、別のアーティスト';
+  observer(); await advance(); await advance();
+  assert.equal(sent.length, 5);
+  assert.equal(sent[4].song.artist, 'さくらみこ、別のアーティスト');
 });
