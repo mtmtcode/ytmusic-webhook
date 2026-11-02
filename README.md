@@ -15,7 +15,7 @@ YouTube Musicの曲変更を検知し、好きなURLへ選択したHTTPメソッ
 
 拡張アイコンから送信先を追加し、URL・HTTPメソッド・認証・JSONを設定。全体と送信先の通知をONにして「すべて保存」。
 
-HTTPメソッドはPOST（既定）・GET・HEAD・PUT・PATCH・DELETE・OPTIONSから選べます。既存設定はPOSTを維持します。GET・HEADは本文なしで送信し、JSONテンプレートを使用しません。曲情報をURLのクエリに追加する機能はありません。それ以外はJSON本文を送ります。接続テストも選択したメソッドで実際に送信します。HTTP 2xxを成功とし、応答本文は問いません。LaMetricのプリセットは引き続きPOSTが既定です。
+HTTPメソッドはPOST（既定）・GET・PUT・PATCH・DELETEから選べます。既存設定はPOSTを維持します。GETは本文なしで送信し、JSONテンプレートを使用しません。曲情報をURLのクエリに追加する機能はありません。それ以外はJSON本文を送ります。接続テストも選択したメソッドで実際に送信します。HTTP 2xxを成功とし、応答本文は問いません。LaMetricのプリセットは引き続きPOSTが既定です。
 
 変数は `{{title}}`（曲名）、`{{artist}}`（アーティスト）、`{{source}}`（`youtube-music`）。
 

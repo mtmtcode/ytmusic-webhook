@@ -19,7 +19,7 @@ Chrome Manifest V3 / JavaScript。ビルド、フレームワーク、外部依�
 - 未対応変数、構文エラー、キーの変数使用、64KB超、64段を超える入れ子を拒否する。JavaScriptや式は評価しない。
 - 送信先は最大20件。認証はなし・Basic・Bearerに対応する。
 - URLはHTTP(S)のみ。URL内の認証情報・フラグメント・空白・ワイルドカードを拒否し、リダイレクトには追従しない。
-- HTTPメソッドはPOST（既定）・GET・HEAD・PUT・PATCH・DELETE・OPTIONS。GET・HEADは本文なしでJSONテンプレートを使用しない。その他はJSON本文を送る。既存設定のメソッド未指定はPOSTとして扱う。
+- HTTPメソッドはPOST（既定）・GET・PUT・PATCH・DELETE。GETは本文なしでJSONテンプレートを使用しない。その他はJSON本文を送る。既存設定のメソッド未指定はPOSTとして扱う。
 - 各メソッドのHTTP 2xxを成功として扱う。応答本文が空・JSON以外でも受け付ける。
 
 ## 動作と状態管理

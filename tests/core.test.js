@@ -53,7 +53,7 @@ test('LaMetric POST uses dev Basic authentication and accepts an empty response'
     assert.equal(options.redirect, 'error'); assert.equal(options.body, '{"a":1}');
     return new Response(null, { status: 204 });
   } }), null);
-  await assert.rejects(sendRequest(target, 'TRACE'), /未対応/);
+  for (const method of ['HEAD', 'OPTIONS', 'TRACE']) await assert.rejects(sendRequest(target, method), /未対応/);
   assert.equal(await sendRequest(target, 'POST', { fetcher: async () => new Response('OK') }), null);
 });
 test('generic webhooks support empty 204, Bearer and UTF8 Basic credentials', async () => {
@@ -140,7 +140,7 @@ test('HTTP methods validate, persist and migrate without changing existing setti
     assert.equal(config.targets[0].method, method);
     assert.deepEqual(validateConfig(migrateConfig(config)), config);
   }
-  for (const method of ['TRACE', 'CONNECT', 'post', '', null]) assert.throws(() => validateTarget({ ...target, method }), /HTTP/);
+  for (const method of ['HEAD', 'OPTIONS', 'TRACE', 'CONNECT', 'post', '', null]) assert.throws(() => validateTarget({ ...target, method }), /HTTP/);
   const { method, ...legacy } = target;
   assert.equal(validateTarget(legacy).method, 'POST');
   const migrated = migrateConfig({ version: 5, enabled: true, targets: [legacy] });
@@ -150,7 +150,7 @@ test('HTTP methods validate, persist and migrate without changing existing setti
 test('all supported methods send the expected body and preserve authentication', async () => {
   const target = { ...webhook(), auth: { type: 'bearer', token: 'key' } };
   for (const method of HTTP_METHODS) {
-    const noBody = ['GET', 'HEAD'].includes(method);
+    const noBody = ['GET'].includes(method);
     const current = validateTarget({ ...target, method, ...(noBody ? { template: 'unused' } : {}) });
     const body = targetBody(current, { title: 'Song', artist: 'Artist' });
     await sendRequest(current, method, { body, fetcher: async (url, options) => {
@@ -164,7 +164,7 @@ test('all supported methods send the expected body and preserve authentication',
       return new Response(null, { status: 204 });
     } });
   }
-  for (const method of ['GET', 'HEAD']) await sendRequest(target, method, { body: { ignored: true }, fetcher: async (_url, options) => {
+  for (const method of ['GET']) await sendRequest(target, method, { body: { ignored: true }, fetcher: async (_url, options) => {
     assert.equal(options.body, undefined);
     return new Response(null, { status: 204 });
   } });

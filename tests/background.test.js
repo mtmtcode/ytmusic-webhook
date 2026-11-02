@@ -32,7 +32,7 @@ async function worker(initial = {}, fetcher = async () => Response.json({ succes
 }
 test('worker lifecycle, multi-destination delivery and concurrency', async t => {
   await t.test('selected methods survive save and restart and apply to tests and song delivery', async () => {
-    for (const method of ['POST', 'GET', 'HEAD', 'PUT', 'PATCH', 'DELETE', 'OPTIONS']) {
+    for (const method of ['POST', 'GET', 'PUT', 'PATCH', 'DELETE']) {
       const target = { ...webhook(), method };
       const w = await worker(); await settle();
       assert.deepEqual(await w.save(config([target])), { ok: true }); await settle();
@@ -42,7 +42,7 @@ test('worker lifecycle, multi-destination delivery and concurrency', async t => 
       await restored.song('New song');
       await until(() => restored.data.deliveries.pi?.lastKey); await settle();
       assert.deepEqual(restored.calls.map(call => call.method), [method, method]);
-      const noBody = ['GET', 'HEAD'].includes(method);
+      const noBody = ['GET'].includes(method);
       for (const call of restored.calls) assert.equal(call.body === undefined, noBody);
       if (!noBody) {
         assert.equal(JSON.parse(restored.calls[0].body).title, SAMPLE.title);

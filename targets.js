@@ -5,8 +5,8 @@ export const LAMETRIC_TEMPLATE = JSON.stringify({ priority: 'info', model: { cyc
 export const LAMETRIC_DIY_TEMPLATE = JSON.stringify({ frames: [{ icon: 'i54031', text: '{{title}}' }, { icon: 'i45197', text: '{{artist}}' }] }, null, 2);
 export const SAMPLE = { title: '接続テスト', artist: 'YouTube Music' };
 const VARIABLES = ['source', 'title', 'artist'];
-export const HTTP_METHODS = ['POST', 'GET', 'HEAD', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'];
-export const hasRequestBody = method => !['GET', 'HEAD'].includes(method);
+export const HTTP_METHODS = ['POST', 'GET', 'PUT', 'PATCH', 'DELETE'];
+export const hasRequestBody = method => method !== 'GET';
 export const targetBody = (target, song) => hasRequestBody(target.method ?? 'POST') ? renderTemplate(target.template, song) : undefined;
 export function newTarget(preset = 'webhook') {
   if (preset === 'lametric-diy') return { id: crypto.randomUUID(), name: 'LaMetric TIME - My Data DIY', preset, enabled: true,
@@ -130,7 +130,7 @@ export function migrateConfig(config) {
 function utf8Base64(text) { return btoa(Array.from(new TextEncoder().encode(text), byte => String.fromCharCode(byte)).join('')); }
 export async function sendRequest(target, method, { body, fetcher = fetch, timeout = 8000 } = {}) {
   if (!HTTP_METHODS.includes(method)) throw new ApiError('未対応のHTTPメソッドです。');
-  const mayChangeState = !['GET', 'HEAD', 'OPTIONS'].includes(method);
+  const mayChangeState = method !== 'GET';
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeout);
   try {
